@@ -27,12 +27,24 @@ function extractTextFromHtml(html: string): string {
   return text.substring(0, 2000)
 }
 
+const MODEL_API_URL = process.env.ML_MODEL_API_URL || "http://localhost:5000/ml/predict/url"
+const HF_API_TOKEN = process.env.HF_API_TOKEN
+
 async function callMLServer(text: string) {
   try {
-    const response = await fetch("http://localhost:5000/ml/predict/url", {
+    console.log("[v0] Calling ML Server at:", MODEL_API_URL)
+    const isHfInference = MODEL_API_URL.includes("api-inference.huggingface.co/models")
+    const bodyPayload = isHfInference ? { inputs: text } : { text }
+    const headers: Record<string, string> = { "Content-Type": "application/json" }
+
+    if (HF_API_TOKEN) {
+      headers.Authorization = `Bearer ${HF_API_TOKEN}`
+    }
+
+    const response = await fetch(MODEL_API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      headers,
+      body: JSON.stringify(bodyPayload),
     })
 
     if (!response.ok) {
